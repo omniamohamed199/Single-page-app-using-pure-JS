@@ -1,4 +1,6 @@
 const vidReqListElm = document.getElementById('listOfRequests')
+let sortBy = 'VotedFisrt'
+let searchTerm = ''
 function AppendSingleRequest(vidReQ, isPrepend) {
   const vidElm = document.createElement("div");
   vidElm.innerHTML = `<div class="card mb-3">
@@ -61,31 +63,48 @@ function AppendSingleRequest(vidReQ, isPrepend) {
   })
 
 }
-function getAll(sortBy = 'VotedFisrt') {
-  fetch(`http://localhost:7777/video-request?GetBy=${sortBy}`).then(bold => bold.json()).then(data => {
+function getAll(sortBy = 'VotedFisrt', searchTerm = '') {
+  fetch(`http://localhost:7777/video-request?GetBy=${sortBy}&SearchTerm=${searchTerm}`).then(bold => bold.json()).then(data => {
     vidReqListElm.innerText = ''
     data.forEach((vidReQ) => {
       AppendSingleRequest(vidReQ)
     })
   })
 }
+
+function debounce(fn, time) {
+  let timeout;
+  return function () {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => fn.apply(this, arguments), time)
+  }
+
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const frmElm = document.getElementById('DataToBePosted')
   const FilterElms = document.querySelectorAll('[id*=Sort_By_]')
+  const searchBox = document.getElementById('search_Box')
   FilterElms.forEach((elem) => {
     elem.addEventListener('click', function (e) {
       e.preventDefault()
-      const sortBy = this.querySelector('input').value
-      getAll(sortBy)
+      sortBy = this.querySelector('input').value
+      getAll(sortBy, searchTerm)
       this.classList.add('active')
       if (sortBy === 'TopVotedFisrt') {
         document.getElementById('Sort_By_new').classList.remove('active')
       }
       else {
-        document.getElementById('Sort_By_new').classList.remove('active')
+        document.getElementById('Sort_By_Top').classList.remove('active')
       }
     })
   })
+
+  searchBox.addEventListener('input', debounce((e) => {
+    searchTerm = e.target.value
+    getAll(sortBy, searchTerm)
+  }, 1100)
+  )
   getAll()
 
   frmElm.addEventListener('submit', (e) => {

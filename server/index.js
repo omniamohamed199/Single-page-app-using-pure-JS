@@ -27,11 +27,17 @@ app.post('/video-request', upload.none(), async (req, res, next) => {
 });
 
 app.get('/video-request', async (req, res, next) => {
-  const { GetBy } = req.query
-  let data = await VideoRequestData.getAllVideoRequests();
-  data = data.sort((prev,next) => {
+  const { GetBy, SearchTerm } = req.query
+  let data;
+  if (SearchTerm) {
+    data = await VideoRequestData.searchRequests(SearchTerm)
+  }
+  else {
+    data = await VideoRequestData.getAllVideoRequests();
+  }
+  data = data.sort((prev, next) => {
     if (GetBy === 'TopVotedFisrt') {
-      if (prev.votes.ups - prev.votes.downs > next.votes.ups - next.votes.downs )
+      if (prev.votes.ups - prev.votes.downs > next.votes.ups - next.votes.downs)
         return -1;
       else
         return 1
