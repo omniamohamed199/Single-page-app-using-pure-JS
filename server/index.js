@@ -1,18 +1,26 @@
 const express = require('express');
 const app = express();
-const bodyParser = require('body-parser');
 const port = process.env.PORT || 7777;
 const VideoRequestData = require('./data/video-requests.data');
 const UserData = require('./data/user.data');
 const cors = require('cors');
 const mongoose = require('./models/mongo.config');
 const multer = require('multer');
-
 if (!Object.keys(mongoose).length) return;
 
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({
+  extended: true
+}));
 
-app.use(bodyParser.urlencoded({ extended: true }));
+// Express bellow v4.16.0
+// ----------------------
+const body = require('body-parser');
+
+app.use(express.urlencoded({
+  extended: true
+}));
 
 app.get('/', (req, res) =>
   res.send('Welcome to semicolon academy APIs, use /video-request to get data')
@@ -37,7 +45,7 @@ app.get('/video-request', async (req, res, next) => {
   }
   data = data.sort((prev, next) => {
     if (GetBy === 'TopVotedFisrt') {
-      if (prev.votes.ups - prev.votes.downs > next.votes.ups - next.votes.downs)
+      if (prev.votes.ups.length - prev.votes.downs.length > next.votes.ups.length - next.votes.downs.length)
         return -1;
       else
         return 1
@@ -62,8 +70,8 @@ app.post('/users/login', async (req, res, next) => {
 app.use(express.json());
 
 app.put('/video-request/vote', async (req, res, next) => {
-  const { id, vote_type } = req.body;
-  const response = await VideoRequestData.updateVoteForRequest(id, vote_type);
+  const { id, vote_type, user_id } = req.body;
+  const response = await VideoRequestData.updateVoteForRequest(id, vote_type, user_id);
   res.send(response.votes);
   next();
 });
