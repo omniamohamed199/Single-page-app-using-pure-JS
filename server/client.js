@@ -3,6 +3,7 @@ const SUPERAdmin_ID = '1995112'
 const state = {
   sortBy: 'VotedFisrt',
   searchTerm: '',
+  filterBy:'all',
   userID: '',
   IsSuperUser: false
 }
@@ -43,6 +44,11 @@ function AppendSingleRequest(vidReQ, isPrepend) {
                   ${vidReQ.expected_result && `<strong>Expected results:</strong> ${vidReQ.expected_result}`}
                 </p>
               </div>
+              ${ vidReQ.status === 'done' ?  `<div class="ml-auto mr-3">
+              <iframe width="240" height="135" src="https://www.youtube.com/embed/${vidReQ.video_ref.link}" 
+               frameborder="0" allowfullscreen></iframe>
+              </div>` :''}
+              
               <div class="d-flex flex-column text-center">
                 <a class="btn btn-link" id="Votes_ups_${vidReQ._id}">🔺</a>
                 <h3 id="scores${vidReQ._id}">${vidReQ.votes.ups.length - vidReQ.votes.downs.length}</h3>
@@ -51,7 +57,12 @@ function AppendSingleRequest(vidReQ, isPrepend) {
             </div>
             <div class="card-footer d-flex flex-row justify-content-between">
               <div>
-                <span class="text-info"> ${vidReQ.status.toUpperCase()}</span>
+                <span class="${
+                  vidReQ.status === 'done' ? 
+                  'text-success' : 
+                  vidReQ.status === 'Planned' ? 
+                  'text-primary' : ''
+                }"> ${vidReQ.status.toUpperCase()} ${vidReQ.status === 'done' ? new Date(vidReQ.submit_date).toLocaleDateString() :''}</span>
                 &bullet; added by <strong>${vidReQ.author_name}</strong> on
                 <strong>${new Date(vidReQ.submit_date).toLocaleDateString()}</strong>
               </div>
@@ -114,35 +125,39 @@ function AppendSingleRequest(vidReQ, isPrepend) {
     })
   }
 
-  ApplyVoteStyle(vidReQ._id, vidReQ.votes)
+  ApplyVoteStyle(vidReQ._id, vidReQ.votes, vidReQ.status === 'done')
 
   const scoresElm = document.getElementById(`scores${vidReQ._id}`)
   const votesElms = document.querySelectorAll(`[id^=Votes_][id$=_${vidReQ._id}]`)
 
-  votesElms.forEach(elm => elm.addEventListener('click', function (e) {
-    e.preventDefault()
-    const [, vote_type, id] = e.target.getAttribute('id').split('_')
-    fetch('http://localhost:7777/video-request/vote', {
-      method: "PUT",
-      headers: { "content-type": "Application/JSON" },
-      body: JSON.stringify({ id, vote_type, user_id: state.userID })
-    }).then((blob) => blob.json()).then(res => {
-      scoresElm.innerText = res.ups.length - res.downs.length
-      ApplyVoteStyle(vidReQ._id, res, vote_type)
-    })
+  votesElms.forEach(elm => {
+    if (state.IsSuperUser || vidReQ.status === 'done') {
+      return;
+    }
+    elm.addEventListener('click', function (e) {
+      e.preventDefault()
+      const [, vote_type, id] = e.target.getAttribute('id').split('_')
+      fetch('http://localhost:7777/video-request/vote', {
+        method: "PUT",
+        headers: { "content-type": "Application/JSON" },
+        body: JSON.stringify({ id, vote_type, user_id: state.userID })
+      }).then((blob) => blob.json()).then(res => {
+        scoresElm.innerText = res.ups.length - res.downs.length
+        ApplyVoteStyle(vidReQ._id, res, vidReQ.status === 'done', vote_type)
+      })
 
-  }))
+    })
+  })
 }
-function ApplyVoteStyle(vidReQ_id, VoteList, vote_type) {
+function ApplyVoteStyle(vidReQ_id, VoteList, IsDisabled, vote_type) {
   const Votes_upsElm = document.getElementById(`Votes_ups_${vidReQ_id}`)
   const Votes_downsElm = document.getElementById(`Votes_downs_${vidReQ_id}`)
 
-  if(state.IsSuperUser)
-  {
-    Votes_upsElm.style.opacity='0.5'
-    Votes_upsElm.style.cursor='not-allowed'
-    Votes_downsElm.style.opacity='0.5'
-    Votes_downsElm.style.cursor='not-allowed'
+  if (state.IsSuperUser || IsDisabled) {
+    Votes_upsElm.style.opacity = '0.5'
+    Votes_upsElm.style.cursor = 'not-allowed'
+    Votes_downsElm.style.opacity = '0.5'
+    Votes_downsElm.style.cursor = 'not-allowed'
     return;
   }
   if (!vote_type) {
@@ -156,7 +171,7 @@ function ApplyVoteStyle(vidReQ_id, VoteList, vote_type) {
       return
     }
   }
-  
+
   const VoteDirElem = vote_type === 'ups' ? Votes_upsElm : Votes_downsElm
   const OtherDirElem = vote_type === 'ups' ? Votes_downsElm : Votes_upsElm
 
@@ -169,8 +184,8 @@ function ApplyVoteStyle(vidReQ_id, VoteList, vote_type) {
   }
 
 }
-function getAll(sortBy = 'VotedFisrt', searchTerm = '') {
-  fetch(`http://localhost:7777/video-request?GetBy=${sortBy}&SearchTerm=${searchTerm}`).then(bold => bold.json()).then(data => {
+function getAll(sortBy = 'VotedFisrt', searchTerm = '',filterBy='all') {
+  fetch(`http://localhost:7777/video-request?GetBy=${sortBy}&SearchTerm=${searchTerm}&filterBy=${filterBy}`).then(bold => bold.json()).then(data => {
     vidReqListElm.innerText = ''
     data.forEach((vidReQ) => {
       AppendSingleRequest(vidReQ)
@@ -227,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const frmElm = document.getElementById('DataToBePosted')
   const FilterElms = document.querySelectorAll('[id*=Sort_By_]')
   const searchBox = document.getElementById('search_Box')
+  const FilterByElms = document.querySelectorAll('[id*=Filter_By_]')
   const formloginElm = document.querySelector('.login-form')
   const mainconentElm = document.querySelector('.main-conent')
   if (window.location.search) {
@@ -245,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
     elem.addEventListener('click', function (e) {
       e.preventDefault()
       state.sortBy = this.querySelector('input').value
-      getAll(state.sortBy, state.searchTerm)
+      getAll(state.sortBy, state.searchTerm,state.filterBy)
       this.classList.add('active')
       if (state.sortBy === 'TopVotedFisrt') {
         document.getElementById('Sort_By_new').classList.remove('active')
@@ -256,9 +272,19 @@ document.addEventListener('DOMContentLoaded', function () {
     })
   })
 
+  FilterByElms.forEach(elm=>{
+    elm.addEventListener('click',function(e){
+      e.preventDefault()
+      state.filterBy=e.target.getAttribute('id').split('_')[2]
+      FilterByElms.forEach(option=>option.classList.remove('active'))
+      this.classList.add('active')
+      getAll(state.sortBy,state.searchTerm,state.filterBy)
+    })
+  })
+  console.log(FilterByElms)
   searchBox.addEventListener('input', debounce((e) => {
     state.searchTerm = e.target.value
-    getAll(state.sortBy, state.searchTerm)
+    getAll(state.sortBy, state.searchTerm,state.filterBy)
   }, 1100)
   )
   getAll()

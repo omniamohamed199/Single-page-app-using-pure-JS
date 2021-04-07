@@ -11,12 +11,14 @@ module.exports = {
     return newRequest.save();
   },
 
-  getAllVideoRequests: (top) => {
-    return VideoRequest.find({}).sort({ submit_date: '-1' }).limit(top);
+  getAllVideoRequests: (filterBy) => {
+    const filter= filterBy ==='all' ? {} : {status : filterBy}
+    return VideoRequest.find(filter).sort({ submit_date: '-1' });
   },
 
-  searchRequests: (topic) => {
-    return VideoRequest.find({ topic_title: { $regex: topic, $options: 'i' } })
+  searchRequests: (topic, filterBy) => {
+    const filter= filterBy ==='all' ? {} : {status : filterBy}
+    return VideoRequest.find({ topic_title: { $regex: topic, $options: 'i' } , ...filter})
       .sort({ addedAt: '-1' })
   },
 
@@ -36,22 +38,20 @@ module.exports = {
     return VideoRequest.findByIdAndUpdate(id, updates, { new: true });
   },
 
-  updateVoteForRequest: async (id, vote_type ,user_id) => {
+  updateVoteForRequest: async (id, vote_type, user_id) => {
     const oldRequest = await VideoRequest.findById({ _id: id });
     const other_type = vote_type === 'ups' ? 'downs' : 'ups';
-    const oldvoteList=oldRequest.votes[vote_type]
-    const othervoteList=oldRequest.votes[other_type]
+    const oldvoteList = oldRequest.votes[vote_type]
+    const othervoteList = oldRequest.votes[other_type]
 
-    if(!oldvoteList.includes(user_id))
-    {
+    if (!oldvoteList.includes(user_id)) {
       oldvoteList.push(user_id)
     }
-    else{
+    else {
       oldvoteList.splice(user_id)
-    } 
+    }
 
-    if(othervoteList.includes(user_id))
-    {
+    if (othervoteList.includes(user_id)) {
       othervoteList.splice(user_id)
     }
     return VideoRequest.findByIdAndUpdate(
@@ -62,7 +62,7 @@ module.exports = {
           [other_type]: othervoteList,
         },
       },
-      {new:true}
+      { new: true }
     );
   },
   deleteRequest: (id) => {

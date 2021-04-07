@@ -76,7 +76,7 @@
                 </div>
               </div>
             </div>
-            
+
             <button type="submit" class="btn btn-success mt-3">
               Send video request
             </button>
@@ -93,10 +93,25 @@
               <input type="radio" name="options" value="TopVotedFisrt">Top voted first
             </label>
           </div>
+          <div class="btn-group btn-group-toggle" data-toggle="buttons">
+            <label class="btn btn-primary active" id="Filter_By_all">
+              <input type="radio" name="options" value="VotedFisrt">All
+            </label>
+            <label class="btn btn-primary " id="Filter_By_new">
+              <input type="radio" name="options" value="TopVotedFisrt">New
+            </label>
+            <label class="btn btn-primary " id="Filter_By_Planned">
+              <input type="radio" name="options" value="TopVotedFisrt">Planned
+            </label>
+            <label class="btn btn-primary " id="Filter_By_done">
+              <input type="radio" name="options" value="TopVotedFisrt">Done
+            </label>
+          </div>
           <div>
             <input type="search" class="form-control" placeholder="type your searchTerm " id="search_Box" />
           </div>
         </div>
+
       </div>
       <div id="listOfRequests" class="mt-4"></div>
     </div>
